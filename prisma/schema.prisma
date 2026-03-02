@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id                String   @id @default(uuid())
+  keycloakId        String   @unique
+
+  email             String?
+  username          String?
+  name              String?
+
+  role              Role     @default(OPERATOR)
+  isActive          Boolean  @default(true)
+
+  teamId            String?
+  Team              Team?    @relation(fields: [teamId], references: [id])
+
+  sipExtension      String?  @unique
+  sipUsername       String?  @unique
+  sipPassword       String?
+  sipEnabled        Boolean  @default(false)
+
+  tokenVersion      Int      @default(1)
+  failedSipAttempts Int      @default(0)
+  lastLoginAt       DateTime?
+  lastIp            String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  Shifts            Shift[]
+  Presence          Presence?
+  PresenceHistory   PresenceHistory[]
+
+  @@index([keycloakId])
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  OPERATOR
+}
+
+model Team {
+  id        String     @id @default(uuid())
+  name      String
+  Employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model Shift {
+  id         String      @id @default(uuid())
+  employeeId String
+  startedAt  DateTime    @default(now())
+  endedAt    DateTime?
+  status     ShiftStatus @default(ACTIVE)
+
+  Employee   Employee    @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, status])
+}
+
+enum ShiftStatus {
+  ACTIVE
+  CLOSED
+  FORCED_CLOSED
+}
+
+model Presence {
+  id         String         @id @default(uuid())
+  employeeId String         @unique
+  status     PresenceStatus @default(OFFLINE)
+  updatedAt  DateTime       @updatedAt
+
+  Employee   Employee       @relation(fields: [employeeId], references: [id])
+}
+
+model PresenceHistory {
+  id         String         @id @default(uuid())
+  employeeId String
+  status     PresenceStatus
+  createdAt  DateTime       @default(now())
+
+  Employee   Employee       @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+}
+
+enum PresenceStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+  AWAY
+}
