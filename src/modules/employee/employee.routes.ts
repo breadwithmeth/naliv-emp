@@ -27,6 +27,10 @@ const teamBodySchema = z.object({
   teamId: z.string().uuid()
 });
 
+const departmentBodySchema = z.object({
+  departmentId: z.string().uuid()
+});
+
 export async function employeeRoutes(app: FastifyInstance): Promise<void> {
   app.post('/internal/employees/sync', async (request, reply) => {
     const payload = validateSchema(syncBodySchema, request.body);
@@ -68,6 +72,13 @@ export async function employeeRoutes(app: FastifyInstance): Promise<void> {
     const { id } = validateSchema(idParamSchema, request.params);
     const { teamId } = validateSchema(teamBodySchema, request.body);
     const employee = await employeeService.assignEmployeeToTeam(id, teamId);
+    return reply.status(200).send(employee);
+  });
+
+  app.patch('/internal/employees/:id/department', async (request, reply) => {
+    const { id } = validateSchema(idParamSchema, request.params);
+    const { departmentId } = validateSchema(departmentBodySchema, request.body);
+    const employee = await employeeService.assignEmployeeToDepartment(id, departmentId);
     return reply.status(200).send(employee);
   });
 }

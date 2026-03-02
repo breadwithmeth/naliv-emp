@@ -22,7 +22,10 @@ const envSchema = z.object({
 
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
-  BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12)
+  BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
+
+  PRESENCE_IDLE_MINUTES: z.coerce.number().positive().default(5),
+  PRESENCE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(60000)
 });
 
 const parsed = envSchema.safeParse(process.env);

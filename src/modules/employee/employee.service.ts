@@ -11,6 +11,7 @@ const employeePublicSelect = {
   role: true,
   isActive: true,
   teamId: true,
+  departmentId: true,
   sipExtension: true,
   sipUsername: true,
   sipEnabled: true,
@@ -25,6 +26,14 @@ const employeePublicSelect = {
       id: true,
       name: true,
       createdAt: true
+    }
+  },
+  Department: {
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true
     }
   },
   Presence: {
@@ -51,6 +60,7 @@ export type CreateEmployeeInput = {
   role?: Role | undefined;
   isActive?: boolean | undefined;
   teamId?: string | undefined;
+  departmentId?: string | undefined;
 };
 
 export class EmployeeService {
@@ -62,6 +72,13 @@ export class EmployeeService {
       }
     }
 
+    if (input.departmentId) {
+      const department = await prisma.department.findUnique({ where: { id: input.departmentId }, select: { id: true } });
+      if (!department) {
+        throw new AppError(404, 'DEPARTMENT_NOT_FOUND', 'Department not found');
+      }
+    }
+
     const data: {
       keycloakId: string;
       email?: string | null;
@@ -70,6 +87,7 @@ export class EmployeeService {
       role?: Role;
       isActive?: boolean;
       teamId?: string | null;
+      departmentId?: string | null;
       lastLoginAt: Date;
     } = {
       keycloakId: input.keycloakId,
@@ -98,6 +116,10 @@ export class EmployeeService {
 
     if (input.teamId !== undefined) {
       data.teamId = input.teamId;
+    }
+
+    if (input.departmentId !== undefined) {
+      data.departmentId = input.departmentId;
     }
 
     try {
@@ -264,6 +286,23 @@ export class EmployeeService {
       return await prisma.employee.update({
         where: { id: employeeId },
         data: { teamId },
+        select: employeePublicSelect
+      });
+    } catch {
+      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+  }
+
+  async assignEmployeeToDepartment(employeeId: string, departmentId: string) {
+    const department = await prisma.department.findUnique({ where: { id: departmentId }, select: { id: true } });
+    if (!department) {
+      throw new AppError(404, 'DEPARTMENT_NOT_FOUND', 'Department not found');
+    }
+
+    try {
+      return await prisma.employee.update({
+        where: { id: employeeId },
+        data: { departmentId },
         select: employeePublicSelect
       });
     } catch {

@@ -3,3 +3,4 @@ dist
 .env
 .prisma
 .DS_Store
+*.csv

@@ -7,6 +7,7 @@ import { employeeService } from '../employee/employee.service';
 import { shiftService } from '../shift/shift.service';
 import { presenceService } from '../presence/presence.service';
 import { teamService } from '../team/team.service';
+import { departmentService } from '../department/department.service';
 
 const employeeIdParamSchema = z.object({
   id: z.string().uuid()
@@ -19,7 +20,8 @@ const createEmployeeBodySchema = z.object({
   name: z.string().min(1).optional(),
   role: z.nativeEnum(Role).optional(),
   isActive: z.boolean().optional(),
-  teamId: z.string().uuid().optional()
+  teamId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional()
 });
 
 const roleBodySchema = z.object({
@@ -36,6 +38,14 @@ const createTeamBodySchema = z.object({
 
 const assignTeamBodySchema = z.object({
   teamId: z.string().uuid()
+});
+
+const createDepartmentBodySchema = z.object({
+  name: z.string().min(1)
+});
+
+const assignDepartmentBodySchema = z.object({
+  departmentId: z.string().uuid()
 });
 
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
@@ -117,6 +127,24 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
     const { id } = validateSchema(employeeIdParamSchema, request.params);
     const { teamId } = validateSchema(assignTeamBodySchema, request.body);
     const user = await employeeService.assignEmployeeToTeam(id, teamId);
+    return reply.status(200).send(user);
+  });
+
+  app.post('/public/departments', async (request, reply) => {
+    const { name } = validateSchema(createDepartmentBodySchema, request.body);
+    const department = await departmentService.createDepartment(name);
+    return reply.status(201).send(department);
+  });
+
+  app.get('/public/departments', async (_request, reply) => {
+    const departments = await departmentService.listDepartments();
+    return reply.status(200).send(departments);
+  });
+
+  app.patch('/public/users/:id/department', async (request, reply) => {
+    const { id } = validateSchema(employeeIdParamSchema, request.params);
+    const { departmentId } = validateSchema(assignDepartmentBodySchema, request.body);
+    const user = await employeeService.assignEmployeeToDepartment(id, departmentId);
     return reply.status(200).send(user);
   });
 }

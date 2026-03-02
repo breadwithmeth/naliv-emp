@@ -17,16 +17,77 @@ export class PresenceService {
       throw new AppError(403, 'EMPLOYEE_INACTIVE', 'Employee is inactive');
     }
 
-    return prisma.presence.upsert({
+    const existingPresence = await prisma.presence.findUnique({
       where: { employeeId },
-      create: {
-        employeeId,
-        status
+      select: { status: true }
+    });
+
+    if (existingPresence?.status === status) {
+      // Touch record to refresh updatedAt for heartbeat, but skip history when status unchanged.
+      return prisma.presence.update({
+        where: { employeeId },
+        data: { status }
+      });
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const presence = await tx.presence.upsert({
+        where: { employeeId },
+        create: {
+          employeeId,
+          status
+        },
+        update: {
+          status
+        }
+      });
+
+      await tx.presenceHistory.create({
+        data: {
+          employeeId,
+          status
+        }
+      });
+
+      return presence;
+    });
+  }
+
+  async autoOfflineStale(cutoff: Date) {
+    const stale = await prisma.presence.findMany({
+      where: {
+        status: {
+          not: PresenceStatus.OFFLINE
+        },
+        updatedAt: {
+          lt: cutoff
+        }
       },
-      update: {
-        status
+      select: {
+        employeeId: true
       }
     });
+
+    if (stale.length === 0) {
+      return 0;
+    }
+
+    await prisma.$transaction(
+      stale.flatMap(({ employeeId }) => [
+        prisma.presence.update({
+          where: { employeeId },
+          data: { status: PresenceStatus.OFFLINE }
+        }),
+        prisma.presenceHistory.create({
+          data: {
+            employeeId,
+            status: PresenceStatus.OFFLINE
+          }
+        })
+      ])
+    );
+
+    return stale.length;
   }
 }
 
