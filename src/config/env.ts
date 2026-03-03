@@ -31,7 +31,8 @@ const envSchema = z.object({
   OWNTRACKS_BASIC_PASS: z.string().min(1),
 
   TRACCAR_BASIC_USER: z.string().min(1),
-  TRACCAR_BASIC_PASS: z.string().min(1)
+  TRACCAR_BASIC_PASS: z.string().min(1),
+  TRACCAR_BASE_URL: z.string().url()
 });
 
 const parsed = envSchema.safeParse(process.env);

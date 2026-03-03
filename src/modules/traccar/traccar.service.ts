@@ -1,5 +1,6 @@
 import { PresenceStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../prisma/client';
+import { env } from '../../config/env';
 
 export type TraccarPayload = {
   id?: number | undefined;
@@ -16,6 +17,18 @@ export type TraccarPayload = {
 };
 
 export class TraccarService {
+  private authHeaders() {
+    const basic = Buffer.from(`${env.TRACCAR_BASIC_USER}:${env.TRACCAR_BASIC_PASS}`).toString('base64');
+    return {
+      Authorization: `Basic ${basic}`,
+      'Content-Type': 'application/json'
+    } as const;
+  }
+
+  private deviceNameForEmployee(emp: { name: string | null; email: string | null; username: string | null }) {
+    return emp.name || emp.email || emp.username || 'Employee device';
+  }
+
   async handlePing(payload: TraccarPayload) {
     const tid = payload.uniqueId;
     const lat = payload.latitude;
@@ -63,6 +76,64 @@ export class TraccarService {
     ]);
 
     return { stored: true, employeeId: tracker.employeeId };
+  }
+
+  async createDevice(name: string, uniqueId: string) {
+    const res = await fetch(`${env.TRACCAR_BASE_URL}/api/devices`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ name, uniqueId })
+    });
+
+    if (res.status === 409) {
+      // Already exists
+      return { created: false, conflict: true };
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to create traccar device (${res.status}): ${text}`);
+    }
+
+    return { created: true };
+  }
+
+  async syncDevicesForGeoEmployees() {
+    const employees = await prisma.employee.findMany({
+      where: {
+        positionId: { not: null },
+        Position: { requiresGeolocation: true },
+        Tracker: null
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true
+      }
+    });
+
+    const results: { employeeId: string; created: boolean; conflict?: boolean | undefined; error?: string }[] = [];
+
+    for (const emp of employees) {
+      const uniqueId = emp.id; // Use employee id as device uniqueId
+      const name = this.deviceNameForEmployee(emp);
+      try {
+        const created = await this.createDevice(name, uniqueId);
+        if (!created.conflict) {
+          await prisma.employeeTracker.upsert({
+            where: { employeeId: emp.id },
+            create: { employeeId: emp.id, tid: uniqueId },
+            update: { tid: uniqueId }
+          });
+        }
+        results.push({ employeeId: emp.id, created: created.created, conflict: created.conflict ?? undefined });
+      } catch (err) {
+        results.push({ employeeId: emp.id, created: false, error: (err as Error).message });
+      }
+    }
+
+    return results;
   }
 }
 
