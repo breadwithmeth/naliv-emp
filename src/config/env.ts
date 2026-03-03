@@ -32,7 +32,9 @@ const envSchema = z.object({
 
   TRACCAR_BASIC_USER: z.string().min(1),
   TRACCAR_BASIC_PASS: z.string().min(1),
-  TRACCAR_BASE_URL: z.string().url()
+  TRACCAR_BASE_URL: z.string().url(),
+
+  TRACCAR_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(300000)
 });
 
 const parsed = envSchema.safeParse(process.env);
