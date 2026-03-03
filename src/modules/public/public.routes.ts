@@ -14,18 +14,24 @@ const employeeIdParamSchema = z.object({
   id: z.string().uuid()
 });
 
-const createEmployeeBodySchema = z.object({
-  keycloakId: z.string().min(1),
-  email: z.string().email().optional(),
-  username: z.string().min(1).optional(),
-  name: z.string().min(1).optional(),
-  role: z.nativeEnum(Role).optional(),
-  isActive: z.boolean().optional(),
-  teamId: z.string().uuid().optional(),
-  departmentId: z.string().uuid().optional(),
-  positionId: z.string().uuid().optional(),
-  trackerTid: z.string().min(1).optional()
-});
+const createEmployeeBodySchema = z
+  .object({
+    keycloakId: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    username: z.string().min(1).optional(),
+    name: z.string().min(1).optional(),
+    role: z.nativeEnum(Role).optional(),
+    isActive: z.boolean().optional(),
+    teamId: z.string().uuid().optional(),
+    departmentId: z.string().uuid().optional(),
+    positionId: z.string().uuid().optional(),
+    trackerTid: z.string().min(1).optional(),
+    password: z.string().min(6).optional()
+  })
+  .refine(
+    (val) => Boolean(val.keycloakId) || (Boolean(val.email) && Boolean(val.password)),
+    'Either keycloakId or email+password is required'
+  );
 
 const roleBodySchema = z.object({
   role: z.nativeEnum(Role)

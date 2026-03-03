@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { z } from 'zod';
 import { validateSchema } from '../../middleware/validate';
 import { employeeService } from './employee.service';
+import { presenceService } from '../presence/presence.service';
 
 const syncBodySchema = z.object({
   keycloakId: z.string().min(1),
@@ -37,6 +38,10 @@ const positionBodySchema = z.object({
 
 const trackerBodySchema = z.object({
   tid: z.string().min(1)
+});
+
+const historyQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(500).default(100)
 });
 
 export async function employeeRoutes(app: FastifyInstance): Promise<void> {
@@ -102,5 +107,12 @@ export async function employeeRoutes(app: FastifyInstance): Promise<void> {
     const { tid } = validateSchema(trackerBodySchema, request.body);
     const employee = await employeeService.setTracker(id, tid);
     return reply.status(200).send(employee);
+  });
+
+  app.get('/internal/employees/:id/presence-history', async (request, reply) => {
+    const { id } = validateSchema(idParamSchema, request.params);
+    const { limit } = validateSchema(historyQuerySchema, request.query ?? {});
+    const history = await presenceService.getHistory(id, limit);
+    return reply.status(200).send(history);
   });
 }

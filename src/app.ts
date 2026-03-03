@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
+import cors from '@fastify/cors';
 import { env } from './config/env';
 import { logger } from './lib/logger';
 import { registerErrorHandler } from './middleware/errorHandler';
@@ -25,6 +26,11 @@ export async function buildApp() {
     max: env.RATE_LIMIT_MAX,
     timeWindow: env.RATE_LIMIT_WINDOW,
     allowList: []
+  });
+
+  await app.register(cors, {
+    origin: true,
+    credentials: true
   });
 
   app.addHook('onRequest', serviceAuth);

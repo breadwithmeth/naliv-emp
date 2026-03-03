@@ -1,6 +1,7 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../../prisma/client';
 import { AppError } from '../../lib/errors';
+import { keycloakAdminService } from '../keycloak/keycloakAdmin.service';
 
 const employeePublicSelect = {
   id: true,
@@ -72,7 +73,7 @@ export type SyncEmployeeInput = {
 };
 
 export type CreateEmployeeInput = {
-  keycloakId: string;
+  keycloakId?: string | undefined;
   email?: string | undefined;
   username?: string | undefined;
   name?: string | undefined;
@@ -82,10 +83,30 @@ export type CreateEmployeeInput = {
   departmentId?: string | undefined;
   positionId?: string | undefined;
   trackerTid?: string | undefined;
+  password?: string | undefined;
 };
 
 export class EmployeeService {
   async createEmployee(input: CreateEmployeeInput) {
+    // Auto-create Keycloak user if keycloakId not provided but email+password are.
+    if (!input.keycloakId) {
+      if (!input.email || !input.password) {
+        throw new AppError(400, 'KEYCLOAK_ID_REQUIRED', 'Provide keycloakId or email+password to auto-create user');
+      }
+
+      try {
+        const userId = await keycloakAdminService.createUserWithPassword({
+          email: input.email,
+          password: input.password,
+          ...(input.username ? { username: input.username } : {}),
+          ...(input.name ? { name: input.name } : {})
+        });
+        input.keycloakId = userId;
+      } catch (err) {
+        throw new AppError(502, 'KEYCLOAK_CREATE_FAILED', (err as Error).message);
+      }
+    }
+
     if (input.teamId) {
       const team = await prisma.team.findUnique({ where: { id: input.teamId }, select: { id: true } });
       if (!team) {

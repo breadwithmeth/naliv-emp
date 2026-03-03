@@ -18,6 +18,8 @@ const envSchema = z.object({
   KEYCLOAK_INTROSPECTION_URL: z.string().url(),
   KEYCLOAK_CLIENT_ID: z.string().min(1),
   KEYCLOAK_CLIENT_SECRET: z.string().min(1),
+  KEYCLOAK_SERVICE_ACCOUNT_ID: z.string().min(1).optional(),
+  KEYCLOAK_SERVICE_ACCOUNT_SECRET: z.string().min(1).optional(),
   KEYCLOAK_ALLOWED_AUDIENCE: z.string().min(1),
 
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
