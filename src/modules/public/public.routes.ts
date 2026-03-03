@@ -8,6 +8,7 @@ import { shiftService } from '../shift/shift.service';
 import { presenceService } from '../presence/presence.service';
 import { teamService } from '../team/team.service';
 import { departmentService } from '../department/department.service';
+import { positionService } from '../position/position.service';
 
 const employeeIdParamSchema = z.object({
   id: z.string().uuid()
@@ -21,7 +22,9 @@ const createEmployeeBodySchema = z.object({
   role: z.nativeEnum(Role).optional(),
   isActive: z.boolean().optional(),
   teamId: z.string().uuid().optional(),
-  departmentId: z.string().uuid().optional()
+  departmentId: z.string().uuid().optional(),
+  positionId: z.string().uuid().optional(),
+  trackerTid: z.string().min(1).optional()
 });
 
 const roleBodySchema = z.object({
@@ -46,6 +49,21 @@ const createDepartmentBodySchema = z.object({
 
 const assignDepartmentBodySchema = z.object({
   departmentId: z.string().uuid()
+});
+
+const createPositionBodySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1).optional(),
+  requiresGeolocation: z.boolean().optional(),
+  requiresPhoto: z.boolean().optional()
+});
+
+const assignPositionBodySchema = z.object({
+  positionId: z.string().uuid()
+});
+
+const trackerBodySchema = z.object({
+  tid: z.string().min(1)
 });
 
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
@@ -145,6 +163,36 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
     const { id } = validateSchema(employeeIdParamSchema, request.params);
     const { departmentId } = validateSchema(assignDepartmentBodySchema, request.body);
     const user = await employeeService.assignEmployeeToDepartment(id, departmentId);
+    return reply.status(200).send(user);
+  });
+
+  app.post('/public/positions', async (request, reply) => {
+    const payload = validateSchema(createPositionBodySchema, request.body);
+    const position = await positionService.createPosition({
+      name: payload.name,
+      description: payload.description ?? null,
+      requiresGeolocation: payload.requiresGeolocation ?? false,
+      requiresPhoto: payload.requiresPhoto ?? false
+    });
+    return reply.status(201).send(position);
+  });
+
+  app.get('/public/positions', async (_request, reply) => {
+    const positions = await positionService.listPositions();
+    return reply.status(200).send(positions);
+  });
+
+  app.patch('/public/users/:id/position', async (request, reply) => {
+    const { id } = validateSchema(employeeIdParamSchema, request.params);
+    const { positionId } = validateSchema(assignPositionBodySchema, request.body);
+    const user = await employeeService.assignEmployeeToPosition(id, positionId);
+    return reply.status(200).send(user);
+  });
+
+  app.patch('/public/users/:id/tracker', async (request, reply) => {
+    const { id } = validateSchema(employeeIdParamSchema, request.params);
+    const { tid } = validateSchema(trackerBodySchema, request.body);
+    const user = await employeeService.setTracker(id, tid);
     return reply.status(200).send(user);
   });
 }

@@ -9,7 +9,10 @@ import { shiftRoutes } from './modules/shift/shift.routes';
 import { presenceRoutes } from './modules/presence/presence.routes';
 import { sipRoutes } from './modules/sip/sip.routes';
 import { teamRoutes } from './modules/team/team.routes';
+import { positionRoutes } from './modules/position/position.routes';
 import { publicRoutes } from './modules/public/public.routes';
+import { ownTracksRoutes } from './modules/owntracks/owntracks.routes';
+import { traccarRoutes } from './modules/traccar/traccar.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -35,6 +38,9 @@ export async function buildApp() {
   await app.register(presenceRoutes);
   await app.register(sipRoutes);
   await app.register(teamRoutes);
+  await app.register(positionRoutes);
+  await app.register(ownTracksRoutes);
+  await app.register(traccarRoutes);
 
   return app;
 }

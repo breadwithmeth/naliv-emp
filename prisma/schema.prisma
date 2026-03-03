@@ -22,6 +22,9 @@ model Employee {
   Team              Team?    @relation(fields: [teamId], references: [id])
   departmentId      String?
   Department        Department? @relation(fields: [departmentId], references: [id])
+  positionId        String?
+  Position          Position? @relation(fields: [positionId], references: [id])
+  Tracker           EmployeeTracker?
 
   sipExtension      String?  @unique
   sipUsername       String?  @unique
@@ -39,9 +42,11 @@ model Employee {
   Shifts            Shift[]
   Presence          Presence?
   PresenceHistory   PresenceHistory[]
+  LocationPings     LocationPing[]
 
   @@index([keycloakId])
   @@index([departmentId])
+  @@index([positionId])
 }
 
 enum Role {
@@ -63,6 +68,48 @@ model Department {
   Employees Employee[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+}
+
+model Position {
+  id                   String     @id @default(uuid())
+  name                 String     @unique
+  description          String?
+  requiresGeolocation  Boolean    @default(false)
+  requiresPhoto        Boolean    @default(false)
+  Employees            Employee[]
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+}
+
+model EmployeeTracker {
+  id         String   @id @default(uuid())
+  employeeId String   @unique
+  tid        String   @unique
+  createdAt  DateTime @default(now())
+
+  Employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tid])
+}
+
+model LocationPing {
+  id         String   @id @default(uuid())
+  employeeId String
+  tid        String
+  topic      String?
+  lat        Float
+  lon        Float
+  acc        Float?
+  tst        DateTime
+  event      String?
+  conn       String?
+  raw        Json?
+  createdAt  DateTime @default(now())
+
+  Employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, tst])
+  @@index([tid, tst])
 }
 
 model Shift {

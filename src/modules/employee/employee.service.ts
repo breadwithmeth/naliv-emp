@@ -12,6 +12,7 @@ const employeePublicSelect = {
   isActive: true,
   teamId: true,
   departmentId: true,
+  positionId: true,
   sipExtension: true,
   sipUsername: true,
   sipEnabled: true,
@@ -34,6 +35,24 @@ const employeePublicSelect = {
       name: true,
       createdAt: true,
       updatedAt: true
+    }
+  },
+  Position: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      requiresGeolocation: true,
+      requiresPhoto: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  },
+  Tracker: {
+    select: {
+      id: true,
+      tid: true,
+      createdAt: true
     }
   },
   Presence: {
@@ -61,6 +80,8 @@ export type CreateEmployeeInput = {
   isActive?: boolean | undefined;
   teamId?: string | undefined;
   departmentId?: string | undefined;
+  positionId?: string | undefined;
+  trackerTid?: string | undefined;
 };
 
 export class EmployeeService {
@@ -79,6 +100,20 @@ export class EmployeeService {
       }
     }
 
+    if (input.positionId) {
+      const position = await prisma.position.findUnique({ where: { id: input.positionId }, select: { id: true } });
+      if (!position) {
+        throw new AppError(404, 'POSITION_NOT_FOUND', 'Position not found');
+      }
+    }
+
+    if (input.trackerTid) {
+      const existingTid = await prisma.employeeTracker.findUnique({ where: { tid: input.trackerTid }, select: { id: true } });
+      if (existingTid) {
+        throw new AppError(409, 'TRACKER_ALREADY_LINKED', 'Tracker already linked to another employee');
+      }
+    }
+
     const data: {
       keycloakId: string;
       email?: string | null;
@@ -88,6 +123,8 @@ export class EmployeeService {
       isActive?: boolean;
       teamId?: string | null;
       departmentId?: string | null;
+      positionId?: string | null;
+      Tracker?: { create: { tid: string } };
       lastLoginAt: Date;
     } = {
       keycloakId: input.keycloakId,
@@ -120,6 +157,14 @@ export class EmployeeService {
 
     if (input.departmentId !== undefined) {
       data.departmentId = input.departmentId;
+    }
+
+    if (input.positionId !== undefined) {
+      data.positionId = input.positionId;
+    }
+
+    if (input.trackerTid !== undefined) {
+      data.Tracker = { create: { tid: input.trackerTid } };
     }
 
     try {
@@ -308,6 +353,43 @@ export class EmployeeService {
     } catch {
       throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
     }
+  }
+
+  async assignEmployeeToPosition(employeeId: string, positionId: string) {
+    const position = await prisma.position.findUnique({ where: { id: positionId }, select: { id: true } });
+    if (!position) {
+      throw new AppError(404, 'POSITION_NOT_FOUND', 'Position not found');
+    }
+
+    try {
+      return await prisma.employee.update({
+        where: { id: employeeId },
+        data: { positionId },
+        select: employeePublicSelect
+      });
+    } catch {
+      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+  }
+
+  async setTracker(employeeId: string, tid: string) {
+    const employee = await prisma.employee.findUnique({ where: { id: employeeId }, select: { id: true } });
+    if (!employee) {
+      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+
+    const existingTid = await prisma.employeeTracker.findUnique({ where: { tid }, select: { id: true } });
+    if (existingTid) {
+      throw new AppError(409, 'TRACKER_ALREADY_LINKED', 'Tracker already linked to another employee');
+    }
+
+    await prisma.employeeTracker.upsert({
+      where: { employeeId },
+      create: { employeeId, tid },
+      update: { tid }
+    });
+
+    return this.getEmployeeById(employeeId);
   }
 }
 

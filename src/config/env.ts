@@ -25,7 +25,13 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
 
   PRESENCE_IDLE_MINUTES: z.coerce.number().positive().default(5),
-  PRESENCE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(60000)
+  PRESENCE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(60000),
+
+  OWNTRACKS_BASIC_USER: z.string().min(1),
+  OWNTRACKS_BASIC_PASS: z.string().min(1),
+
+  TRACCAR_BASIC_USER: z.string().min(1),
+  TRACCAR_BASIC_PASS: z.string().min(1)
 });
 
 const parsed = envSchema.safeParse(process.env);
