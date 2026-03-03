@@ -10,6 +10,7 @@ async function bootstrap() {
   const idleThresholdMs = env.PRESENCE_IDLE_MINUTES * 60_000;
   const sweepIntervalMs = env.PRESENCE_SWEEP_INTERVAL_MS;
   const traccarSyncIntervalMs = env.TRACCAR_SYNC_INTERVAL_MS;
+  const traccarPollIntervalMs = env.TRACCAR_POLL_INTERVAL_MS;
 
   const runPresenceSweep = async () => {
     const cutoff = new Date(Date.now() - idleThresholdMs);
@@ -45,9 +46,27 @@ async function bootstrap() {
     void runTraccarSync();
   }, traccarSyncIntervalMs);
 
+  const runTraccarPoll = async () => {
+    try {
+      const results = await traccarService.pollPositionsAndStore();
+      const stored = results.filter((r) => r.stored).length;
+      const skipped = results.length - stored;
+      const errors = results.filter((r) => r.error).length;
+
+      app.log.info({ stored, skipped, errors }, 'Traccar poll executed');
+    } catch (err) {
+      app.log.error({ err }, 'Traccar poll failed');
+    }
+  };
+
+  const traccarPollTimer = setInterval(() => {
+    void runTraccarPoll();
+  }, traccarPollIntervalMs);
+
   app.addHook('onClose', async () => {
     clearInterval(sweepTimer);
     clearInterval(traccarSyncTimer);
+    clearInterval(traccarPollTimer);
   });
 
   const gracefulShutdown = async (signal: string) => {
