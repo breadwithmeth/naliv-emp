@@ -45,13 +45,17 @@ async function findUserIdByUsername(token: string, username: string): Promise<st
   return found?.id ?? null;
 }
 
-async function createUser(token: string, params: { email: string; username?: string; name?: string }) {
+async function createUser(
+  token: string,
+  params: { email: string; username?: string; name?: string },
+  options: { requireOtp: boolean }
+) {
   const payload = {
     username: params.username ?? params.email,
     email: params.email,
     enabled: true,
     emailVerified: false,
-    requiredActions: ['CONFIGURE_TOTP'],
+    requiredActions: options.requireOtp ? ['CONFIGURE_TOTP'] : [],
     firstName: params.name ?? undefined
   } as const;
 
@@ -98,9 +102,16 @@ async function setPassword(token: string, userId: string, password: string) {
 }
 
 export class KeycloakAdminService {
-  async createUserWithPassword(params: { email: string; password: string; username?: string; name?: string }) {
+  async createUserWithPassword(params: {
+    email: string;
+    password: string;
+    username?: string;
+    name?: string;
+    requireOtp?: boolean;
+  }) {
+    const { requireOtp = true, ...user } = params;
     const token = await getAdminToken();
-    const userId = await createUser(token, params);
+    const userId = await createUser(token, user, { requireOtp });
     if (!userId) {
       throw new Error('User ID not found after creation/search');
     }

@@ -41,7 +41,9 @@ const trackerBodySchema = z.object({
 });
 
 const historyQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(500).default(100)
+  limit: z.coerce.number().int().positive().max(500).default(100),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional()
 });
 
 export async function employeeRoutes(app: FastifyInstance): Promise<void> {
@@ -111,8 +113,8 @@ export async function employeeRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/internal/employees/:id/presence-history', async (request, reply) => {
     const { id } = validateSchema(idParamSchema, request.params);
-    const { limit } = validateSchema(historyQuerySchema, request.query ?? {});
-    const history = await presenceService.getHistory(id, limit);
+    const { limit, from, to } = validateSchema(historyQuerySchema, request.query ?? {});
+    const history = await presenceService.getHistory(id, limit, from, to);
     return reply.status(200).send(history);
   });
 }

@@ -53,6 +53,7 @@ enum Role {
   ADMIN
   SUPERVISOR
   OPERATOR
+  COURIER
 }
 
 model Team {

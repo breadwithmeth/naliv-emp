@@ -90,7 +90,7 @@ export class PresenceService {
     return stale.length;
   }
 
-  async getHistory(employeeId: string, limit = 100) {
+  async getHistory(employeeId: string, limit = 100, from?: Date, to?: Date) {
     const employee = await prisma.employee.findUnique({ where: { id: employeeId }, select: { id: true } });
     if (!employee) {
       throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
@@ -99,6 +99,17 @@ export class PresenceService {
     return prisma.presenceHistory.findMany({
       where: { employeeId },
       orderBy: { createdAt: 'desc' },
+      ...(from || to
+        ? {
+            where: {
+              employeeId,
+              createdAt: {
+                ...(from ? { gte: from } : {}),
+                ...(to ? { lte: to } : {})
+              }
+            }
+          }
+        : {}),
       take: limit
     });
   }

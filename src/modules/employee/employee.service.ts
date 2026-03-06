@@ -88,6 +88,8 @@ export type CreateEmployeeInput = {
 
 export class EmployeeService {
   async createEmployee(input: CreateEmployeeInput) {
+    const targetRole = input.role ?? Role.OPERATOR;
+
     // Auto-create Keycloak user if keycloakId not provided but email+password are.
     if (!input.keycloakId) {
       if (!input.email || !input.password) {
@@ -98,6 +100,7 @@ export class EmployeeService {
         const userId = await keycloakAdminService.createUserWithPassword({
           email: input.email,
           password: input.password,
+          requireOtp: targetRole !== Role.COURIER,
           ...(input.username ? { username: input.username } : {}),
           ...(input.name ? { name: input.name } : {})
         });
