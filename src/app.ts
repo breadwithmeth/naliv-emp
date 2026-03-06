@@ -14,6 +14,7 @@ import { positionRoutes } from './modules/position/position.routes';
 import { publicRoutes } from './modules/public/public.routes';
 import { ownTracksRoutes } from './modules/owntracks/owntracks.routes';
 import { traccarRoutes } from './modules/traccar/traccar.routes';
+import { locationRoutes } from './modules/location/location.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -47,6 +48,7 @@ export async function buildApp() {
   await app.register(employeeRoutes);
   await app.register(shiftRoutes);
   await app.register(presenceRoutes);
+  await app.register(locationRoutes);
   await app.register(sipRoutes);
   await app.register(teamRoutes);
   await app.register(positionRoutes);

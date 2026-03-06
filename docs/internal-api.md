@@ -51,6 +51,20 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 
 ## Traccar
 - `POST /internal/traccar/sync-devices` — sync devices for geo-enabled employees
+	- body: none
+	- success: 200 `{ synced: [{ employeeId, created, conflict?, error? }] }`
+	- logic: for сотрудников с позицией `requiresGeolocation=true` без трекера создаётся device в Traccar с `uniqueId = employeeId`, локально заводится tracker `tid = employeeId`.
+
+### Traccar Location
+- Позиции тянутся из Traccar через фоновый polling (не HTTP endpoint). Метод `pollPositionsAndStore()` ходит в Traccar API, кладёт точки в `LocationPing` и ставит presence `ONLINE` [src/modules/traccar/traccar.service.ts](../src/modules/traccar/traccar.service.ts#L118-L205).
+- Вебхук/push от Traccar не используется; входящие HTTP для локаций не принимаются.
+- Требования: для сотрудников с геопозицией `Position.requiresGeolocation=true` должен существовать device в Traccar с `uniqueId` = `employeeId` (создаётся `/internal/traccar/sync-devices`).
+
+### Location Feed
+- `GET /internal/locations/latest?windowSeconds=30` — последняя точка по каждому сотруднику за окно (по умолчанию 30 секунд)
+	- query: `windowSeconds` (int, 1..3600, default 30)
+	- success: 200 `[{ employeeId, tid, lat, lon, acc, tst }]` — по одному элементу на сотрудника, если в окне есть точки; иначе сотрудник отсутствует
+	- тело: нет
 
 ---
 Source: [src/app.ts](../src/app.ts), [src/modules/employee/employee.routes.ts](../src/modules/employee/employee.routes.ts), [src/modules/shift/shift.routes.ts](../src/modules/shift/shift.routes.ts), [src/modules/presence/presence.routes.ts](../src/modules/presence/presence.routes.ts), [src/modules/sip/sip.routes.ts](../src/modules/sip/sip.routes.ts), [src/modules/team/team.routes.ts](../src/modules/team/team.routes.ts), [src/modules/position/position.routes.ts](../src/modules/position/position.routes.ts), [src/modules/traccar/traccar.routes.ts](../src/modules/traccar/traccar.routes.ts)
