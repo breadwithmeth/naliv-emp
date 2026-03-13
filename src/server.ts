@@ -3,6 +3,7 @@ import { env } from './config/env';
 import { prisma } from './prisma/client';
 import { presenceService } from './modules/presence/presence.service';
 import { traccarService } from './modules/traccar/traccar.service';
+import { employeeService } from './modules/employee/employee.service';
 
 async function bootstrap() {
   const app = await buildApp();
@@ -11,6 +12,7 @@ async function bootstrap() {
   const sweepIntervalMs = env.PRESENCE_SWEEP_INTERVAL_MS;
   const traccarSyncIntervalMs = env.TRACCAR_SYNC_INTERVAL_MS;
   const traccarPollIntervalMs = env.TRACCAR_POLL_INTERVAL_MS;
+  const keycloakSyncIntervalMs = env.KEYCLOAK_SYNC_INTERVAL_MS;
 
   const runPresenceSweep = async () => {
     const cutoff = new Date(Date.now() - idleThresholdMs);
@@ -63,10 +65,27 @@ async function bootstrap() {
     void runTraccarPoll();
   }, traccarPollIntervalMs);
 
+  const runKeycloakSync = async () => {
+    try {
+      const result = await employeeService.syncFromKeycloak();
+      app.log.info(result, 'Keycloak users sync executed');
+    } catch (err) {
+      app.log.error({ err }, 'Keycloak users sync failed');
+    }
+  };
+
+  // Initial sync on startup so new users are available before first interval tick.
+  void runKeycloakSync();
+
+  const keycloakSyncTimer = setInterval(() => {
+    void runKeycloakSync();
+  }, keycloakSyncIntervalMs);
+
   app.addHook('onClose', async () => {
     clearInterval(sweepTimer);
     clearInterval(traccarSyncTimer);
     clearInterval(traccarPollTimer);
+    clearInterval(keycloakSyncTimer);
   });
 
   const gracefulShutdown = async (signal: string) => {

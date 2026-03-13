@@ -4,7 +4,7 @@ import { validateSchema } from '../../middleware/validate';
 import { shiftService } from './shift.service';
 
 const idParamSchema = z.object({
-  id: z.string().uuid()
+  id: z.string().min(1)
 });
 
 export async function shiftRoutes(app: FastifyInstance): Promise<void> {

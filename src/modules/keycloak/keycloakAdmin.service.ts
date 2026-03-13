@@ -1,5 +1,14 @@
 import { env } from '../../config/env';
 
+export type KeycloakRealmUser = {
+  id: string;
+  email: string | null;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  enabled: boolean;
+};
+
 function baseAdminUrl() {
   return `${env.KEYCLOAK_BASE_URL}/admin/realms/${encodeURIComponent(env.KEYCLOAK_REALM)}`;
 }
@@ -102,6 +111,63 @@ async function setPassword(token: string, userId: string, password: string) {
 }
 
 export class KeycloakAdminService {
+  async listRealmUsers(options?: { pageSize?: number; maxUsers?: number }) {
+    const pageSize = options?.pageSize ?? 200;
+    const maxUsers = options?.maxUsers;
+
+    if (pageSize < 1 || pageSize > 1000) {
+      throw new Error('pageSize must be between 1 and 1000');
+    }
+
+    const token = await getAdminToken();
+    const users: KeycloakRealmUser[] = [];
+
+    let first = 0;
+    while (true) {
+      const url = `${baseAdminUrl()}/users?first=${first}&max=${pageSize}&briefRepresentation=true`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to list users (${res.status}): ${text}`);
+      }
+
+      const batch = (await res.json()) as Array<{
+        id?: string;
+        email?: string;
+        username?: string;
+        firstName?: string;
+        lastName?: string;
+        enabled?: boolean;
+      }>;
+
+      const mapped = batch
+        .filter((item) => Boolean(item.id))
+        .map((item) => ({
+          id: String(item.id),
+          email: item.email ?? null,
+          username: item.username ?? null,
+          firstName: item.firstName ?? null,
+          lastName: item.lastName ?? null,
+          enabled: item.enabled !== false
+        }));
+
+      users.push(...mapped);
+
+      if (maxUsers && users.length >= maxUsers) {
+        return users.slice(0, maxUsers);
+      }
+
+      if (batch.length < pageSize) {
+        return users;
+      }
+
+      first += pageSize;
+    }
+  }
+
   async createUserWithPassword(params: {
     email: string;
     password: string;

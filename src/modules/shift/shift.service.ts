@@ -3,10 +3,27 @@ import { prisma } from '../../prisma/client';
 import { AppError } from '../../lib/errors';
 
 export class ShiftService {
+  private async resolveEmployeeRef(employeeRef: string) {
+    const employee = await prisma.employee.findFirst({
+      where: {
+        OR: [{ id: employeeRef }, { keycloakId: employeeRef }]
+      },
+      select: { id: true, isActive: true }
+    });
+
+    if (!employee) {
+      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+
+    return employee;
+  }
+
   async startShift(employeeId: string) {
     return prisma.$transaction(async (tx) => {
-      const employee = await tx.employee.findUnique({
-        where: { id: employeeId },
+      const employee = await tx.employee.findFirst({
+        where: {
+          OR: [{ id: employeeId }, { keycloakId: employeeId }]
+        },
         select: { id: true, isActive: true }
       });
 
@@ -20,7 +37,7 @@ export class ShiftService {
 
       const activeShift = await tx.shift.findFirst({
         where: {
-          employeeId,
+          employeeId: employee.id,
           status: ShiftStatus.ACTIVE
         },
         select: { id: true }
@@ -32,15 +49,15 @@ export class ShiftService {
 
       const shift = await tx.shift.create({
         data: {
-          employeeId,
+          employeeId: employee.id,
           status: ShiftStatus.ACTIVE
         }
       });
 
       await tx.presence.upsert({
-        where: { employeeId },
+        where: { employeeId: employee.id },
         create: {
-          employeeId,
+          employeeId: employee.id,
           status: PresenceStatus.ONLINE
         },
         update: {
@@ -53,10 +70,12 @@ export class ShiftService {
   }
 
   async stopShift(employeeId: string) {
+    const employee = await this.resolveEmployeeRef(employeeId);
+
     return prisma.$transaction(async (tx) => {
       const activeShift = await tx.shift.findFirst({
         where: {
-          employeeId,
+          employeeId: employee.id,
           status: ShiftStatus.ACTIVE
         }
       });
@@ -74,9 +93,9 @@ export class ShiftService {
       });
 
       await tx.presence.upsert({
-        where: { employeeId },
+        where: { employeeId: employee.id },
         create: {
-          employeeId,
+          employeeId: employee.id,
           status: PresenceStatus.OFFLINE
         },
         update: {
@@ -89,8 +108,10 @@ export class ShiftService {
   }
 
   async getEmployeeShifts(employeeId: string) {
+    const employee = await this.resolveEmployeeRef(employeeId);
+
     return prisma.shift.findMany({
-      where: { employeeId },
+      where: { employeeId: employee.id },
       orderBy: { startedAt: 'desc' }
     });
   }

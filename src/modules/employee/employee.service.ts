@@ -87,6 +87,53 @@ export type CreateEmployeeInput = {
 };
 
 export class EmployeeService {
+  async syncFromKeycloak(options?: { maxUsers?: number; pageSize?: number }) {
+    const keycloakUsers = await keycloakAdminService.listRealmUsers(options);
+
+    let created = 0;
+    let updated = 0;
+
+    for (const user of keycloakUsers) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+      const name = fullName.length > 0 ? fullName : null;
+
+      const existing = await prisma.employee.findUnique({
+        where: { keycloakId: user.id },
+        select: { id: true }
+      });
+
+      await prisma.employee.upsert({
+        where: { keycloakId: user.id },
+        create: {
+          keycloakId: user.id,
+          email: user.email,
+          username: user.username,
+          name,
+          isActive: user.enabled,
+          lastLoginAt: new Date()
+        },
+        update: {
+          email: user.email,
+          username: user.username,
+          name,
+          isActive: user.enabled
+        }
+      });
+
+      if (existing) {
+        updated += 1;
+      } else {
+        created += 1;
+      }
+    }
+
+    return {
+      totalFetched: keycloakUsers.length,
+      created,
+      updated
+    };
+  }
+
   async createEmployee(input: CreateEmployeeInput) {
     const targetRole = input.role ?? Role.OPERATOR;
 

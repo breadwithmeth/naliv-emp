@@ -41,6 +41,7 @@ Internal Workforce Control Layer for `bm` and `njt25` service-to-service integra
 
 ## Internal endpoints
 - `POST /internal/employees/sync`
+- `POST /internal/employees/sync-keycloak`
 - `GET /internal/employees/:keycloakId`
 - `GET /internal/employees`
 - `POST /internal/employees/:id/shifts/start`

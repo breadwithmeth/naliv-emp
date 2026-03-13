@@ -47,6 +47,11 @@ const historyQuerySchema = z.object({
 });
 
 export async function employeeRoutes(app: FastifyInstance): Promise<void> {
+  app.post('/internal/employees/sync-keycloak', async (_request, reply) => {
+    const result = await employeeService.syncFromKeycloak();
+    return reply.status(200).send(result);
+  });
+
   app.post('/internal/employees/sync', async (request, reply) => {
     const payload = validateSchema(syncBodySchema, request.body);
     const employee = await employeeService.syncEmployee(payload);

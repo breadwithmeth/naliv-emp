@@ -21,6 +21,7 @@ const envSchema = z.object({
   KEYCLOAK_SERVICE_ACCOUNT_ID: z.string().min(1).optional(),
   KEYCLOAK_SERVICE_ACCOUNT_SECRET: z.string().min(1).optional(),
   KEYCLOAK_ALLOWED_AUDIENCE: z.string().min(1),
+  KEYCLOAK_SYNC_INTERVAL_MS: z.coerce.number().int().positive().default(300000),
 
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
