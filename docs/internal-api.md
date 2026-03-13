@@ -6,6 +6,7 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 - `POST /internal/employees/sync` — upsert by `keycloakId`; body `{ keycloakId, email?, username?, ip? }`
 - `POST /internal/employees/sync-keycloak` — bulk sync all users from Keycloak realm to local employees (`keycloakId = user.id`)
 - `GET /internal/employees/:keycloakId` — get by Keycloak ID
+	- если сотрудник с таким `keycloakId` отсутствует локально, сервис проверяет Keycloak и автоматически создаёт локальный профиль
 - `GET /internal/employees` — list employees (для доступа, например, сервису njt25)
 - `PATCH /internal/employees/:id/role` — set role; body `{ role }`
 - `PATCH /internal/employees/:id/activate` — activate
@@ -22,18 +23,21 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 ## Shifts
 - `POST /internal/employees/:id/shifts/start` — start shift
 	- params: `id` — employee UUID или `keycloakId`
+	- если передан неизвестный локально `keycloakId`, профиль подтянется из Keycloak автоматически
 	- body: none
 	- success: 201 + `Shift { id, employeeId, startedAt, endedAt: null, status: ACTIVE }`
 	- errors: 404 `EMPLOYEE_NOT_FOUND`, 403 `EMPLOYEE_INACTIVE`, 409 `ACTIVE_SHIFT_EXISTS`
 	- side effect: Presence set to `ONLINE`
 - `POST /internal/employees/:id/shifts/stop` — stop active shift
 	- params: `id` — employee UUID или `keycloakId`
+	- если передан неизвестный локально `keycloakId`, профиль подтянется из Keycloak автоматически
 	- body: none
 	- success: 200 + `Shift { id, employeeId, startedAt, endedAt, status: CLOSED }`
 	- errors: 404 `ACTIVE_SHIFT_NOT_FOUND`
 	- side effect: Presence set to `OFFLINE`
 - `GET /internal/employees/:id/shifts` — list shifts (desc by startedAt)
 	- params: `id` — employee UUID или `keycloakId`
+	- если передан неизвестный локально `keycloakId`, профиль подтянется из Keycloak автоматически
 	- success: 200 + `Shift[]`
 	- body: none
 

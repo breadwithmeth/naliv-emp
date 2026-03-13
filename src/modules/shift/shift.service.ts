@@ -1,15 +1,21 @@
 import { PresenceStatus, ShiftStatus } from '@prisma/client';
 import { prisma } from '../../prisma/client';
 import { AppError } from '../../lib/errors';
+import { employeeService } from '../employee/employee.service';
 
 export class ShiftService {
   private async resolveEmployeeRef(employeeRef: string) {
-    const employee = await prisma.employee.findFirst({
+    let employee = await prisma.employee.findFirst({
       where: {
         OR: [{ id: employeeRef }, { keycloakId: employeeRef }]
       },
       select: { id: true, isActive: true }
     });
+
+    if (!employee) {
+      const ensured = await employeeService.ensureEmployeeByKeycloakId(employeeRef);
+      employee = { id: ensured.id, isActive: ensured.isActive };
+    }
 
     if (!employee) {
       throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');

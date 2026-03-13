@@ -87,6 +87,49 @@ export type CreateEmployeeInput = {
 };
 
 export class EmployeeService {
+  private keycloakName(firstName: string | null, lastName: string | null) {
+    const full = [firstName, lastName].filter(Boolean).join(' ').trim();
+    return full.length > 0 ? full : null;
+  }
+
+  async ensureEmployeeByKeycloakId(keycloakId: string) {
+    const existing = await prisma.employee.findUnique({
+      where: { keycloakId },
+      select: employeePublicSelect
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const keycloakUser = await keycloakAdminService.getUserById(keycloakId);
+    if (!keycloakUser) {
+      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+
+    const created = await prisma.employee.upsert({
+      where: { keycloakId },
+      create: {
+        keycloakId,
+        email: keycloakUser.email,
+        username: keycloakUser.username,
+        name: this.keycloakName(keycloakUser.firstName, keycloakUser.lastName),
+        isActive: keycloakUser.enabled,
+        role: Role.COURIER,
+        lastLoginAt: new Date()
+      },
+      update: {
+        email: keycloakUser.email,
+        username: keycloakUser.username,
+        name: this.keycloakName(keycloakUser.firstName, keycloakUser.lastName),
+        isActive: keycloakUser.enabled
+      },
+      select: employeePublicSelect
+    });
+
+    return created;
+  }
+
   async syncFromKeycloak(options?: { maxUsers?: number; pageSize?: number }) {
     const keycloakUsers = await keycloakAdminService.listRealmUsers(options);
 
@@ -94,8 +137,7 @@ export class EmployeeService {
     let updated = 0;
 
     for (const user of keycloakUsers) {
-      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
-      const name = fullName.length > 0 ? fullName : null;
+      const name = this.keycloakName(user.firstName, user.lastName);
 
       const existing = await prisma.employee.findUnique({
         where: { keycloakId: user.id },
@@ -324,16 +366,7 @@ export class EmployeeService {
   }
 
   async getEmployeeByKeycloakId(keycloakId: string) {
-    const employee = await prisma.employee.findUnique({
-      where: { keycloakId },
-      select: employeePublicSelect
-    });
-
-    if (!employee) {
-      throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
-    }
-
-    return employee;
+    return this.ensureEmployeeByKeycloakId(keycloakId);
   }
 
   async getEmployeeById(employeeId: string) {

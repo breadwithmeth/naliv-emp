@@ -111,6 +111,44 @@ async function setPassword(token: string, userId: string, password: string) {
 }
 
 export class KeycloakAdminService {
+  async getUserById(userId: string): Promise<KeycloakRealmUser | null> {
+    const token = await getAdminToken();
+    const res = await fetch(`${baseAdminUrl()}/users/${encodeURIComponent(userId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (res.status === 404) {
+      return null;
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to get user ${userId} (${res.status}): ${text}`);
+    }
+
+    const user = (await res.json()) as {
+      id?: string;
+      email?: string;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      enabled?: boolean;
+    };
+
+    if (!user.id) {
+      return null;
+    }
+
+    return {
+      id: String(user.id),
+      email: user.email ?? null,
+      username: user.username ?? null,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      enabled: user.enabled !== false
+    };
+  }
+
   async listRealmUsers(options?: { pageSize?: number; maxUsers?: number }) {
     const pageSize = options?.pageSize ?? 200;
     const maxUsers = options?.maxUsers;
