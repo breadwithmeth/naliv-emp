@@ -43,10 +43,12 @@ Internal Workforce Control Layer for `bm` and `njt25` service-to-service integra
 - `POST /internal/employees/sync`
 - `POST /internal/employees/sync-keycloak`
 - `GET /internal/employees/:keycloakId`
+- `GET /internal/employees/by-id/:employeeId`
 - `GET /internal/employees`
 - `POST /internal/employees/:id/shifts/start`
 - `POST /internal/employees/:id/shifts/stop`
 - `GET /internal/employees/:id/shifts`
+- `GET /internal/shifts`
 - `PATCH /internal/employees/:id/presence`
 - `PATCH /internal/employees/:id/role`
 - `PATCH /internal/employees/:id/activate`
@@ -70,6 +72,7 @@ Internal Workforce Control Layer for `bm` and `njt25` service-to-service integra
 - `POST /public/users/:id/shifts/start`
 - `POST /public/users/:id/shifts/stop`
 - `GET /public/users/:id/shifts`
+- `GET /public/shifts`
 - `PATCH /public/users/:id/presence`
 - `POST /public/teams`
 - `GET /public/teams`

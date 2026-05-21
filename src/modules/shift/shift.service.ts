@@ -121,6 +121,35 @@ export class ShiftService {
       orderBy: { startedAt: 'desc' }
     });
   }
+
+  async getAllShifts(filters?: { employeeId?: string; from?: Date; to?: Date }) {
+    const where: {
+      employeeId?: string;
+      startedAt?: {
+        gte?: Date;
+        lte?: Date;
+      };
+    } = {};
+
+    if (filters?.employeeId) {
+      where.employeeId = filters.employeeId;
+    }
+
+    if (filters?.from || filters?.to) {
+      where.startedAt = {};
+      if (filters.from) {
+        where.startedAt.gte = filters.from;
+      }
+      if (filters.to) {
+        where.startedAt.lte = filters.to;
+      }
+    }
+
+    return prisma.shift.findMany({
+      where,
+      orderBy: { startedAt: 'desc' }
+    });
+  }
 }
 
 export const shiftService = new ShiftService();

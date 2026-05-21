@@ -75,6 +75,11 @@ const trackerBodySchema = z.object({
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('onRequest', requireSupervisorOrAdmin);
 
+  app.get('/public/shifts', async (_request, reply) => {
+    const shifts = await shiftService.getAllShifts();
+    return reply.status(200).send(shifts);
+  });
+
   app.get('/public/users', async (_request, reply) => {
     const users = await employeeService.listEmployees();
     return reply.status(200).send(users);

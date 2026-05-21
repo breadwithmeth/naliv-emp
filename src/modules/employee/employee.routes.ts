@@ -20,6 +20,10 @@ const keycloakParamSchema = z.object({
   keycloakId: z.string().min(1)
 });
 
+const employeeIdParamSchema = z.object({
+  employeeId: z.string().uuid()
+});
+
 const roleBodySchema = z.object({
   role: z.nativeEnum(Role)
 });
@@ -61,6 +65,12 @@ export async function employeeRoutes(app: FastifyInstance): Promise<void> {
   app.get('/internal/employees/:keycloakId', async (request, reply) => {
     const { keycloakId } = validateSchema(keycloakParamSchema, request.params);
     const employee = await employeeService.getEmployeeByKeycloakId(keycloakId);
+    return reply.status(200).send(employee);
+  });
+
+  app.get('/internal/employees/by-id/:employeeId', async (request, reply) => {
+    const { employeeId } = validateSchema(employeeIdParamSchema, request.params);
+    const employee = await employeeService.getEmployeeById(employeeId);
     return reply.status(200).send(employee);
   });
 

@@ -114,11 +114,9 @@ export class TraccarService {
     return { created: true };
   }
 
-  async syncDevicesForGeoEmployees() {
+  async syncDevicesForAllEmployees() {
     const employees = await prisma.employee.findMany({
       where: {
-        positionId: { not: null },
-        Position: { requiresGeolocation: true },
         Tracker: null
       },
       select: {

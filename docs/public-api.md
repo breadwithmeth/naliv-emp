@@ -15,6 +15,7 @@ Base URL: `http://localhost:3005`
 - `PATCH /public/users/:id/deactivate` — deactivate
 
 ## Shifts
+- `GET /public/shifts` — list all shifts
 - `POST /public/users/:id/shifts/start` — start shift
 - `POST /public/users/:id/shifts/stop` — stop shift
 - `GET /public/users/:id/shifts` — list shifts

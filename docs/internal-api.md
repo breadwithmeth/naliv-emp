@@ -7,6 +7,7 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 - `POST /internal/employees/sync-keycloak` — bulk sync all users from Keycloak realm to local employees (`keycloakId = user.id`)
 - `GET /internal/employees/:keycloakId` — get by Keycloak ID
 	- если сотрудник с таким `keycloakId` отсутствует локально, сервис проверяет Keycloak и автоматически создаёт локальный профиль
+- `GET /internal/employees/by-id/:employeeId` — resolve user by local `employee_id` (UUID)
 - `GET /internal/employees` — list employees (для доступа, например, сервису njt25)
 - `PATCH /internal/employees/:id/role` — set role; body `{ role }`
 - `PATCH /internal/employees/:id/activate` — activate
@@ -21,6 +22,10 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 - `PATCH /internal/employees/:id/presence` — set presence; body `{ status }` (ONLINE | OFFLINE | BUSY | AWAY)
 
 ## Shifts
+- `GET /internal/shifts` — list all shifts (desc by startedAt)
+	- query (optional): `employeeId` (UUID), `from` (date), `to` (date)
+	- success: 200 + `Shift[]`
+	- body: none
 - `POST /internal/employees/:id/shifts/start` — start shift
 	- params: `id` — employee UUID или `keycloakId`
 	- если передан неизвестный локально `keycloakId`, профиль подтянется из Keycloak автоматически
@@ -55,15 +60,15 @@ Service-to-service endpoints. All calls require a Bearer token (realm role `empl
 - `GET /internal/positions` — list positions
 
 ## Traccar
-- `POST /internal/traccar/sync-devices` — sync devices for geo-enabled employees
+- `POST /internal/traccar/sync-devices` — sync devices for all employees without tracker
 	- body: none
 	- success: 200 `{ synced: [{ employeeId, created, conflict?, error? }] }`
-	- logic: for сотрудников с позицией `requiresGeolocation=true` без трекера создаётся device в Traccar с `uniqueId = employeeId`, локально заводится tracker `tid = employeeId`.
+	- logic: для каждого сотрудника без трекера создаётся device в Traccar с `uniqueId = employeeId`, локально заводится tracker `tid = employeeId`.
 
 ### Traccar Location
 - Позиции тянутся из Traccar через фоновый polling (не HTTP endpoint). Метод `pollPositionsAndStore()` ходит в Traccar API, кладёт точки в `LocationPing` и ставит presence `ONLINE` [src/modules/traccar/traccar.service.ts](../src/modules/traccar/traccar.service.ts#L118-L205).
 - Вебхук/push от Traccar не используется; входящие HTTP для локаций не принимаются.
-- Требования: для сотрудников с геопозицией `Position.requiresGeolocation=true` должен существовать device в Traccar с `uniqueId` = `employeeId` (создаётся `/internal/traccar/sync-devices`).
+- Требования: для сотрудников, от которых ожидается геопозиция, должен существовать device в Traccar с `uniqueId` = `employeeId` (создаётся `/internal/traccar/sync-devices`).
 
 ### Location Feed
 - `GET /internal/locations/latest?windowSeconds=30` — последняя точка по каждому сотруднику за окно (по умолчанию 30 секунд)

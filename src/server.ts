@@ -33,7 +33,7 @@ async function bootstrap() {
 
   const runTraccarSync = async () => {
     try {
-      const results = await traccarService.syncDevicesForGeoEmployees();
+      const results = await traccarService.syncDevicesForAllEmployees();
       const created = results.filter((r) => r.created).length;
       const conflicts = results.filter((r) => r.conflict).length;
       const errors = results.filter((r) => r.error).length;
@@ -76,6 +76,8 @@ async function bootstrap() {
 
   // Initial sync on startup so new users are available before first interval tick.
   void runKeycloakSync();
+  // Initial Traccar sync on startup so employees get devices immediately.
+  void runTraccarSync();
 
   const keycloakSyncTimer = setInterval(() => {
     void runKeycloakSync();
