@@ -26,7 +26,8 @@ const createEmployeeBodySchema = z
     departmentId: z.string().uuid().optional(),
     positionId: z.string().uuid().optional(),
     trackerTid: z.string().min(1).optional(),
-    password: z.string().min(6).optional()
+    password: z.string().min(6).optional(),
+    requireOtp: z.boolean().optional()
   })
   .refine(
     (val) => Boolean(val.keycloakId) || (Boolean(val.email) && Boolean(val.password)),

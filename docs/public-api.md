@@ -6,8 +6,9 @@ Base URL: `http://localhost:3005`
 ## Users
 - `GET /public/users` — list users
 - `POST /public/users` — create user
-  - body: `{(email+password), email?, username?, name?, role?, isActive?, teamId?, departmentId?, positionId?, trackerTid?, password? }`
+  - body: `{(email+password), email?, username?, name?, role?, isActive?, teamId?, departmentId?, positionId?, trackerTid?, password?, requireOtp? }`
   - Если `keycloakId` не указан, при наличии `email+password` пользователь создается в Keycloak автоматически.
+  - `requireOtp: false` отключает обязательную настройку OTP при создании в Keycloak.
 - `GET /public/users/:id` — user by id
 - `PATCH /public/users/:id/role` — update role
   - body: `{ role }`

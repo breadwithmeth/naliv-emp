@@ -84,6 +84,7 @@ export type CreateEmployeeInput = {
   positionId?: string | undefined;
   trackerTid?: string | undefined;
   password?: string | undefined;
+  requireOtp?: boolean | undefined;
 };
 
 export class EmployeeService {
@@ -189,7 +190,7 @@ export class EmployeeService {
         const userId = await keycloakAdminService.createUserWithPassword({
           email: input.email,
           password: input.password,
-          requireOtp: targetRole !== Role.COURIER,
+          requireOtp: input.requireOtp ?? targetRole !== Role.COURIER,
           ...(input.username ? { username: input.username } : {}),
           ...(input.name ? { name: input.name } : {})
         });
